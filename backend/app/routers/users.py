@@ -1,14 +1,14 @@
+from datetime import datetime, timezone
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from typing import Annotated
+
 from app.database import get_db
 from app.utils import google_auth
 from app.crud import users as crud_users
 from app.schemas import users as schema_users
 from app.schemas import responses as schema_responses
 from app.utils.jwt import create_access_token, create_refresh_token, get_user_from_token
-
-from datetime import datetime, timezone
-from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Annotated
 
 router = APIRouter()
 
@@ -21,9 +21,9 @@ def login_google():
     This endpoint returns the Google authorization URL that the client needs
     to redirect the user to in order to authenticate with Google.
     
-    Returns:
-        - authorization_url: The URL where the user needs to authenticate with Google.
-        - state: A unique state parameter to help prevent CSRF attacks.
+   Returns:
+        :return authorization_url: The URL where the user needs to authenticate with Google.
+        :return state: A unique state parameter to help prevent CSRF attacks.
     """
     authorization_url, state = google_auth.get_google_authorization_url()
     
@@ -36,19 +36,14 @@ def login_google():
 @router.get("/auth/google/callback", response_model=schema_responses.TokenResponse, summary="Google OAuth2 Callback", tags=["Authentication"])
 def auth_google_callback(code: Annotated[str, Query()], db: Session = Depends(get_db)):
     """
-    Handles the callback from Google OAuth2.
-
-    After the user authenticates with Google, they are redirected to this endpoint
-    with an authorization code. This endpoint exchanges the code for user information
-    and generates JWT tokens.
+    Handles the callback from Google OAuth2 and exchanges the code for user information and JWT tokens.
 
     Parameters:
-        - code: Authorization code from Google.
-    
+        :param code: Authorization code from Google.
+
     Returns:
-        - access_token: The JWT access token for API access.
-        - refresh_token: The JWT refresh token for obtaining new access tokens.
-        - token_type: The type of the token (Bearer in this case)
+        :return access_token: The JWT access token for API access.
+        :return refresh_token: The JWT refresh token for obtaining new access tokens.
     """
 
     try:
@@ -106,10 +101,10 @@ def change_my_name(new_name: Annotated[str, Query()], user: schema_users.User = 
     Allows the authenticated user to change their name.
 
     Parameters:
-        - new_name: The new name to be set for the user.
+        :param new_name: The new name to be set for the user.
 
     Returns:
-        - The updated user information.
+        :return: The updated user information.
     """
 
     user_update = schema_users.UserUpdate(id=user.id, name=new_name)
@@ -124,13 +119,10 @@ def change_my_name(new_name: Annotated[str, Query()], user: schema_users.User = 
 @router.delete("/me", response_model=schema_responses.DeleteAccountResponse, summary="Delete My Account", tags=["User"])
 def delete_my_account(user: schema_users.User = Depends(get_user_from_token), db: Session = Depends(get_db)):
     """
-    Allows the authenticated user to delete their account.
-
-    Parameters:
-        None (the user is identified by the token).
+   	Allows the authenticated user to delete their account.
 
     Returns:
-        - A confirmation message.
+        :return message: Confirmation message.
     """
     crud_users.delete_user(db, user.id)
     
