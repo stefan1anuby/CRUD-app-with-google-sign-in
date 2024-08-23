@@ -6,27 +6,38 @@ from fastapi import HTTPException
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID")
 GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 
-scopes = [
+SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
     "openid"
 ]
 
+CLIENT_CONFIG = {'web': {
+    'client_id': GOOGLE_CLIENT_ID,
+    'project_id': GOOGLE_PROJECT_ID,
+    'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+    'token_uri': 'https://oauth2.googleapis.com/token',
+    'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
+    'client_secret': GOOGLE_CLIENT_SECRET,
+    'redirect_uris': [GOOGLE_REDIRECT_URI],
+}}
+
 def get_authorization_url():
-    flow = Flow.from_client_secrets_file(
-        "client_secret.json",  # This file contains your OAuth 2.0 credentials
-        scopes=scopes,
+    flow = Flow.from_client_config(
+        client_config=CLIENT_CONFIG,
+        scopes=SCOPES,
         redirect_uri=GOOGLE_REDIRECT_URI
     )
     authorization_url, state = flow.authorization_url(prompt='consent')
     return authorization_url, state
 
 def exchange_authorization_code(code: str):
-    flow = Flow.from_client_secrets_file(
-        "client_secret.json",
-        scopes=scopes,
+    flow = Flow.from_client_config(
+        client_config=CLIENT_CONFIG,
+        scopes=SCOPES,
         redirect_uri=GOOGLE_REDIRECT_URI
     )
     flow.fetch_token(code=code)
