@@ -14,7 +14,7 @@ scopes = [
     "openid"
 ]
 
-def get_google_authorization_url():
+def get_authorization_url():
     flow = Flow.from_client_secrets_file(
         "client_secret.json",  # This file contains your OAuth 2.0 credentials
         scopes=scopes,
