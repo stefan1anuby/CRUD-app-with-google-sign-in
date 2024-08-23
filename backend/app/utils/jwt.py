@@ -62,11 +62,14 @@ def get_user_from_token(db: Session = Depends(get_db),
     user_db = users_crud.get_user_by_id(db, uuid.UUID(user_id))
     if not user_db:
         raise CREDENTIALS_EXCEPTION
-        
+
+    user_db_notes = [schema_users.Note(id=note.id, content=note.content) for note in user_db.notes]
+
     user = schema_users.User(id=user_db.id,
                              name=user_db.name,
                              email=user_db.email,
                              created_date=user_db.created_date,
-                             last_login_date=user_db.last_login_date)
+                             last_login_date=user_db.last_login_date,
+                             notes=user_db_notes)
     return user
     
