@@ -1,6 +1,21 @@
 from datetime import datetime
 import uuid
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
+
+class NoteBase(BaseModel):
+    content: constr(min_length=10, max_length=500) 
+
+class NoteCreate(NoteBase):
+    pass
+
+class NoteUpdate(NoteBase):
+    id: uuid.UUID
+
+class Note(NoteBase):
+    id: uuid.UUID
+
+    class Config:
+        orm_mode = True
 
 class UserBase(BaseModel):
     pass
@@ -21,6 +36,9 @@ class User(UserBase):
     email: str
     created_date: datetime
     last_login_date: datetime
+    notes: list[Note] = []
 
     class Config:
         orm_mode = True
+
+

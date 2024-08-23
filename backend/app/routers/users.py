@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import Annotated
@@ -63,22 +64,31 @@ def auth_google_callback(code: Annotated[str, Query()], db: Session = Depends(ge
 		#User needs to be created
         user_create = schema_users.UserCreate(name=name, email=email)
         user = crud_users.create_user(db, user=user_create)
-    
+        if not user:
+            raise HTTPException(status_code=500, detail="Failed to create a new user")
+   
+
     else:
         #User logged in and the account was already created
         user_update = schema_users.UserUpdate(id = user.id,
                                           last_login_date=datetime.now(timezone.utc))
         user = crud_users.update_user(db, user_update)
-        
-    access_token = create_access_token(data=str(user.id))
-    refresh_token = create_refresh_token(data=str(user.id))
+        if not user:
+            raise HTTPException(status_code=500, detail="Failed to update the user when trying to log in")
+   
+    try:
+        access_token = create_access_token(data=str(user.id))
+        refresh_token = create_refresh_token(data=str(user.id))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create tokens")
+
 
     return schema_responses.TokenResponse(
         access_token=access_token,
         refresh_token=refresh_token
     )
 
-@router.get("/me", response_model=schema_users.User, summary="Get Current User")
+@router.get("/me", response_model=schema_users.User, summary="Get Current User", tags=["Me"])
 def protected_route(user: schema_users.User = Depends(get_user_from_token)):
     """
     Gets the info of the logged user
@@ -95,8 +105,8 @@ def protected_route(user: schema_users.User = Depends(get_user_from_token)):
                              created_date=user.created_date,
                              last_login_date=user.last_login_date)
 
-@router.put("/me/name", response_model=schema_users.User, summary="Change My Name", tags=["User"])
-def change_my_name(new_name: Annotated[str, Query()], user: schema_users.User = Depends(get_user_from_token), db: Session = Depends(get_db)):
+@router.put("/me/name", response_model=schema_users.User, summary="Change My Name", tags=["Me"])
+def change_my_name(new_name: Annotated[str, Query(min_length=5,max_length=100)], user: schema_users.User = Depends(get_user_from_token), db: Session = Depends(get_db)):
     """
     Allows the authenticated user to change their name.
 
@@ -109,6 +119,9 @@ def change_my_name(new_name: Annotated[str, Query()], user: schema_users.User = 
 
     user_update = schema_users.UserUpdate(id=user.id, name=new_name)
     updated_user = crud_users.update_user(db, user_update)
+
+    if not updated_user:
+        raise HTTPException(status_code=500, detail="Failed to update user name")
     
     return schema_users.User(id=updated_user.id,
                              name=updated_user.name,
@@ -116,7 +129,7 @@ def change_my_name(new_name: Annotated[str, Query()], user: schema_users.User = 
                              created_date=updated_user.created_date,
                              last_login_date=updated_user.last_login_date)
 
-@router.delete("/me", response_model=schema_responses.DeleteAccountResponse, summary="Delete My Account", tags=["User"])
+@router.delete("/me", response_model=schema_responses.DeleteAccountResponse, summary="Delete My Account", tags=["Me"])
 def delete_my_account(user: schema_users.User = Depends(get_user_from_token), db: Session = Depends(get_db)):
     """
    	Allows the authenticated user to delete their account.
@@ -124,8 +137,61 @@ def delete_my_account(user: schema_users.User = Depends(get_user_from_token), db
     Returns:
         :return message: Confirmation message.
     """
-    crud_users.delete_user(db, user.id)
+    deleted_user = crud_users.delete_user(db, user.id)
+    if not deleted_user:
+        raise HTTPException(status_code=500, detail="Failed to delete user")
     
     return schema_responses.DeleteAccountResponse(
         message="User account deleted successfully"
+    )
+
+@router.post("/me/notes", response_model=schema_users.Note, summary="Add a Note", tags=["Me, Notes"])
+def add_note_for_user(note: schema_users.NoteCreate, user: schema_users.User = Depends(get_user_from_token), db: Session = Depends(get_db)):
+    """
+    Allows the authenticated user to add a note.
+
+    Parameters:
+        :param note: The note content.
+
+    Returns:
+        :return: The created note.
+    """
+    note =  crud_users.create_note_for_user(db, user_id=user.id, note=note)
+    if not note:
+        raise HTTPException(status_code=500, detail="Failed to create note for user")
+    
+    return schema_users.Note(content=note.content,
+                             id=note.id)
+
+
+@router.get("/me/notes", response_model=list[schema_users.Note], summary="Get My Notes", tags=["Me", "Notes"])
+def get_my_notes(user: schema_users.User = Depends(get_user_from_token), db: Session = Depends(get_db)):
+    """
+    Retrieves all notes for the authenticated user.
+    
+    Parameters:
+        None (the user is identified by the token).
+    
+    Returns:
+        - A list of notes.
+    """
+    return crud_users.get_notes_by_user(db, user_id=user.id)
+
+@router.delete("/me/notes/{note_id}", response_model=schema_responses.DeleteAccountResponse, summary="Delete a Note", tags=["User"])
+def delete_note(note_id: UUID, user: schema_users.User = Depends(get_user_from_token), db: Session = Depends(get_db)):
+    """
+    Deletes a note by its ID for the authenticated user.
+    
+    Parameters:
+        :param note_id: The ID of the note to delete.
+
+    Returns:
+        - Confirmation message.
+    """
+    note = crud_users.delete_note_by_id(db, note_id=note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    
+    return schema_responses.DeleteAccountResponse(
+        message="Note deleted successfully"
     )
