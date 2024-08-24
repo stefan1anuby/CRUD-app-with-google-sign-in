@@ -6,8 +6,9 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 
+STAGE = os.getenv("STAGE")
 
-if "IS_TEST_STAGE" not in os.environ:
+if STAGE == "DEV":
     MARIADB_USER = os.getenv("MARIADB_USER")
     MARIADB_PASSWORD = os.getenv("MARIADB_PASSWORD")
     MARIADB_DATABASE = os.getenv("MARIADB_DATABASE")
@@ -17,12 +18,14 @@ if "IS_TEST_STAGE" not in os.environ:
     engine = create_engine(
         DATABASE_URL
     )
-else:
+elif STAGE == "TEST":
     print("WARNING!!! THE IN_MEMORY_DATABASE IS SET FOR TEST PURPOSES !!!")
     IN_MEMORY_SQLITE_URL = "sqlite:///:memory:"
     
     engine = create_engine(IN_MEMORY_SQLITE_URL, echo=True, connect_args={"check_same_thread": False}, 
         poolclass=StaticPool)
+else:
+    raise ValueError("ERROR: PLEASE SET THE STAGE ENV VARIABLE TO 'DEV' OR 'TEST'")
 
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

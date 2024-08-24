@@ -12,6 +12,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building the Docker image...'
+                // Build the Docker image using the Dockerfile in the repository
                 sh 'docker build -t my-fastapi-app ./backend'
             }
         }
@@ -24,7 +25,7 @@ pipeline {
                 docker run --rm \
                 -e SECRET_KEY=$SECRET_KEY \
                 -e JWT_SIGN_ALGORITHM=$JWT_SIGN_ALGORITHM \
-                -e IS_TEST_STAGE=True \
+                -e STAGE=TEST \
                 my-fastapi-app pytest app/tests
                 '''
                 
@@ -34,7 +35,7 @@ pipeline {
         stage('Push') {
             steps {
                 echo 'Pushing the build artifacts...'
-                // TODO: push to ECR or something 
+                // TODO: push to ECR or something
             }
         }
     }

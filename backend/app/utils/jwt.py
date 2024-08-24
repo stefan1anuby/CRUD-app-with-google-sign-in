@@ -19,8 +19,8 @@ CREDENTIALS_EXCEPTION = HTTPException(
     headers={'WWW-Authenticate': 'Bearer'},
 )
 
-API_SECRET_KEY = os.environ.get('SECRET_KEY')
-JWT_SIGN_ALGORITHM =  os.environ.get('JWT_SIGN_ALGORITHM')
+API_SECRET_KEY = os.environ.get('SECRET_KEY','your_secret_key')
+JWT_SIGN_ALGORITHM =  os.environ.get('JWT_SIGN_ALGORITHM','HS256')
 ACCESS_TOKEN_EXPIRE_MINUTES = 120
 REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24 * 30
 

@@ -1,7 +1,9 @@
 import pytest
 
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+
+from dotenv import load_dotenv
+load_dotenv()
 
 from app.main import app  
 from app.database import Base, engine
