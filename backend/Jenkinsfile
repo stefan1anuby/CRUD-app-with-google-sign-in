@@ -1,0 +1,44 @@
+pipeline {
+    agent any 
+
+    stages {
+        stage('Pull') {
+            steps {
+                echo 'Pulling the latest code from GitHub...'
+                git branch: 'main', url: 'https://github.com/stefan1anuby/CRUD-app-with-google-sign-in.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Building the application...'
+                // Replace the below line with your actual build command
+                //sh 'make build'  // Example: build command for a Makefile-based project
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo 'Running tests...'
+                // Replace the below line with your actual test command
+                //sh 'make test'  // Example: test command for a Makefile-based project
+            }
+        }
+
+        stage('Push') {
+            steps {
+                echo 'Pushing the build artifacts...'
+                
+                }
+            }
+        }
+	post {
+		success {
+			echo 'Pipeline completed successfully!'
+		}
+		failure {
+			echo 'Pipeline failed.'
+		}
+	}
+}
+
