@@ -1,24 +1,19 @@
 import pytest
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from app.main import app  # Import your FastAPI app
+from sqlalchemy.pool import StaticPool
+
+from app.main import app  
 from app.database import Base, get_db
-from app.models.users import User, Note
-import uuid
-import os
 
 
-# I SHOULD CREATE A SEPARATE TEST DATABASE INSTEAD OF USING THE "DEVELOPMENT ONE"
-# Setup a test database
-MARIADB_USER = os.getenv("MARIADB_USER")
-MARIADB_PASSWORD = os.getenv("MARIADB_PASSWORD")
-MARIADB_DATABASE = os.getenv("MARIADB_DATABASE")
-MARIADB_HOST = os.getenv("MARIADB_HOST")
 
-DATABASE_URL = f"mariadb+mariadbconnector://{MARIADB_USER}:{MARIADB_PASSWORD}@{MARIADB_HOST}:3306/{MARIADB_DATABASE}"
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True, connect_args={"check_same_thread": False}, 
+    poolclass=StaticPool)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Override the get_db dependency to use the test database
