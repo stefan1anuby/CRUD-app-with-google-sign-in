@@ -1,6 +1,6 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from app.routers import users
-from sqlalchemy.orm import Session
+
 
 from app.database import Base, engine
 
