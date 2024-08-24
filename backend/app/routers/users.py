@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
+from fastapi.responses import RedirectResponse
 from typing import Annotated
 
 from app.database import get_db
@@ -11,6 +12,8 @@ from app.schemas import users as schema_users
 from app.schemas import responses as schema_responses
 from app.utils.jwt import create_access_token, create_refresh_token, get_user_from_token
 
+import os
+
 router = APIRouter()
 
 # TODO: maybe I should add this as a "dependecy" in each route that uses it
@@ -18,6 +21,8 @@ PROVIDERS = {
     "google": google_auth,
     "test": mock_auth.MockAuth()
 }
+
+FRONTEND_URL = os.getenv("FRONTEND_URL","http://localhost:3000")
 
 @router.get("/login/{provider}", response_model=schema_responses.OAuth2LoginResponse, summary="Initiate OAuth2 Login", tags=["Authentication"])
 def login_oauth(provider: Annotated[str, Path(..., description="The OAuth2 provider")]):
@@ -42,7 +47,9 @@ def login_oauth(provider: Annotated[str, Path(..., description="The OAuth2 provi
         state=state
     )
 
-@router.get("/auth/{provider}/callback", response_model=schema_responses.TokenResponse, summary="OAuth2 Callback", tags=["Authentication"])
+@router.get("/auth/{provider}/callback", 
+            response_model=schema_responses.TokenResponse,
+            summary="OAuth2 Callback", tags=["Authentication"])
 def auth_oauth_callback(provider: Annotated[str, Path(..., description="The OAuth2 provider")], 
                         code: Annotated[str, Query()], 
                         db: Session = Depends(get_db)):
@@ -95,11 +102,9 @@ def auth_oauth_callback(provider: Annotated[str, Path(..., description="The OAut
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create tokens")
 
-
-    return schema_responses.TokenResponse(
-        access_token=access_token,
-        refresh_token=refresh_token
-    )
+    # I'm not sure if that's the right thing to do :(
+    redirect_url = f"{FRONTEND_URL}/auth-success?access_token={access_token}&refresh_token={refresh_token}"
+    return RedirectResponse(url=redirect_url)
 
 @router.get("/me", response_model=schema_users.User, summary="Get Current User", tags=["Me"])
 def protected_route(user: schema_users.User = Depends(get_user_from_token)):
