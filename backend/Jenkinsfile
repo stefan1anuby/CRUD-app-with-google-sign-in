@@ -11,34 +11,40 @@ pipeline {
 
         stage('Build') {
             steps {
-                echo 'Building the application...'
-                // Replace the below line with your actual build command
-                //sh 'make build'  // Example: build command for a Makefile-based project
+                echo 'Building the Docker image...'
+                sh 'docker build -t my-fastapi-app ./backend'
             }
         }
 
         stage('Test') {
             steps {
                 echo 'Running tests...'
-                // Replace the below line with your actual test command
-                //sh 'make test'  // Example: test command for a Makefile-based project
+                
+                sh '''
+                docker run --rm \
+                -e SECRET_KEY=$SECRET_KEY \
+                -e JWT_SIGN_ALGORITHM=$JWT_SIGN_ALGORITHM \
+                -e IS_TEST_STAGE=True \
+                my-fastapi-app pytest app/tests
+                '''
+                
             }
         }
 
         stage('Push') {
             steps {
                 echo 'Pushing the build artifacts...'
-                
-                }
+                // TODO: push to ECR or something 
             }
         }
-	post {
-		success {
-			echo 'Pipeline completed successfully!'
-		}
-		failure {
-			echo 'Pipeline failed.'
-		}
-	}
+    }
+    
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
 }
-
