@@ -41,6 +41,19 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       JWT_SIGN_ALGORITHM: ${JWT_SIGN_ALGORITHM}
 
+      FRONTEND_URL: ${FRONTEND_URL}
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - BACKEND_URL=${BACKEND_URL}  # This ensures the frontend communicates with the backend via Docker network
+    depends_on:
+      - backend
 volumes:
   db_data:
 
