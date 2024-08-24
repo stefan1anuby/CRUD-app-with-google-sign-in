@@ -1,5 +1,6 @@
 import pytest
 
+from urllib.parse import urlparse, parse_qs
 from fastapi.testclient import TestClient
 
 from dotenv import load_dotenv
@@ -21,13 +22,18 @@ def test_create_user_and_get_auth_token(setup_test_db):
     # Simulate a login callback to create a user and get tokens
 
     TEST_AUTH_CODE = "test-code"
-    response = client.get(f"/users/auth/test/callback?code={TEST_AUTH_CODE}")
-    assert response.status_code == 200
-    tokens = response.json()
-    assert "access_token" in tokens
-    assert "refresh_token" in tokens
+    response = client.get(f"/users/auth/test/callback?code={TEST_AUTH_CODE}", allow_redirects=False)
+    assert response.status_code == 307
+    assert "location" in response.headers
 
-    access_token = tokens["access_token"]
+    redirect_url = response.headers["location"]
+    parsed_url = urlparse(redirect_url)
+    query_params = parse_qs(parsed_url.query)
+    
+    assert "access_token" in query_params
+    assert "refresh_token" in query_params
+
+    access_token = query_params["access_token"][0]
     assert access_token
 
     return access_token
