@@ -27,6 +27,8 @@ services:
       - db
     environment:
       # Ensure these environment variables are defined in your .env file
+      STAGE: ${STAGE}
+
       MARIADB_HOST: db
       MARIADB_DATABASE: ${MARIADB_DATABASE}
       MARIADB_USER: ${MARIADB_USER}
