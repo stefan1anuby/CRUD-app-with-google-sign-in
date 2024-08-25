@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
 from sqlalchemy.orm import Session
 from fastapi.responses import RedirectResponse
 from typing import Annotated
@@ -48,8 +48,32 @@ def login_oauth(provider: Annotated[str, Path(..., description="The OAuth2 provi
     )
 
 @router.get("/auth/{provider}/callback", 
-            response_model=schema_responses.TokenResponse,
-            summary="OAuth2 Callback", tags=["Authentication"])
+            summary="OAuth2 Callback", tags=["Authentication"],
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            responses={
+                307: {
+                    "description": "Redirect to a URL with access and refresh tokens in the query parameters.",
+                    "content": {
+                        "application/json": {
+                            "examples": {
+                                "successful_redirect": {
+                                    "summary": "Successful Redirect Example",
+                                    "value": {
+                                        "url": "https://frontend.example.com/auth-success?access_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&refresh_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                    }
+                                }
+                            }
+                        }
+                    },
+                },
+                400: {
+                    "description": "Bad Request. Either the OAuth2 provider is unsupported or the authorization code exchange failed."
+                },
+                500: {
+                    "description": "Internal Server Error. Token creation failed or user operations failed."
+                },
+            }
+        )
 def auth_oauth_callback(provider: Annotated[str, Path(..., description="The OAuth2 provider")], 
                         code: Annotated[str, Query()], 
                         db: Session = Depends(get_db)):
@@ -60,9 +84,10 @@ def auth_oauth_callback(provider: Annotated[str, Path(..., description="The OAut
         :param code: Authorization code from the provider.
 
     Returns:
-        :return access_token: The JWT access token for API access.
-        :return refresh_token: The JWT refresh token for obtaining new access tokens.
-    """
+        - **307 Redirect**: Redirects to a frontend URL with `access_token` and `refresh_token` as query parameters.
+        - **400 Bad Request**: If the provider is unsupported or the authorization code exchange failed.
+        - **500 Internal Server Error**: If user creation or token generation fails.
+        """
 
     if provider not in PROVIDERS:
         raise HTTPException(status_code=400, detail="Unsupported OAuth2 provider")
